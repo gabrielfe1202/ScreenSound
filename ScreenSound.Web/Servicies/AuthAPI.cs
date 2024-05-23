@@ -1,13 +1,15 @@
-﻿using ScreenSound.Web.Requests;
+﻿using Microsoft.AspNetCore.Components.Authorization;
+using ScreenSound.Web.Requests;
 using ScreenSound.Web.Response;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Security.Claims;
 
 
 namespace ScreenSound.Web.Servicies
 {
-    public class AuthAPI
+    public class AuthAPI : AuthenticationStateProvider
     {
         private readonly HttpClient _httpClient;
         private readonly CookieContainer _cookieContainer;
@@ -31,6 +33,23 @@ namespace ScreenSound.Web.Servicies
             _httpClient = factory.CreateClient("API");
         }
 
+        public override async Task<AuthenticationState> GetAuthenticationStateAsync()
+        {
+            var pessoa = new ClaimsPrincipal();
+            var response = await _httpClient.GetAsync("auth/manage/info");
+            if (response.IsSuccessStatusCode)
+            {
+                var info = await response.Content.ReadFromJsonAsync<InfoPessoaResponse>();
+                Claim[] dados = [
+                    new Claim(ClaimTypes.Name, info.email),
+                    new Claim(ClaimTypes.Email, info.email)
+                ];
+                var identity = new ClaimsIdentity(dados,"Cookies");
+                pessoa = new ClaimsPrincipal(identity);
+            }
+            return new AuthenticationState(pessoa);
+        }
+
         public async Task<AuthResponse> LoginAsync(string username, string password)
         {
             var response = await _httpClient.PostAsJsonAsync("auth/login?useCookies=true", new
@@ -40,7 +59,8 @@ namespace ScreenSound.Web.Servicies
             });
             if (response.IsSuccessStatusCode)
             {
-                return new AuthResponse { Success = false, Error = new[] { "Autenticação bem-sucedida, mas nenhum cookie foi recebido." } };
+                NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+                return new AuthResponse { Success = false, Error = new[] { "Autenticação bem-sucedida" } };
             }
             else
             {
