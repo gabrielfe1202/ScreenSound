@@ -1,9 +1,11 @@
-﻿using ScreenSound.Banco;
+﻿using Microsoft.Graph;
+using Microsoft.Graph.Models;
+using ScreenSound.Banco;
 using ScreenSound.Menus;
 using ScreenSound.Modelos;
 
-var context = new ScreenSoundContext();
-var artistaDAL = new DAL<Artista>(context);
+//ScreenSoundContext contexts = new ScreenSoundContext();
+//var artistaDAL = new DAL<Artista>(context);
 
 Dictionary<int, Menu> opcoes = new();
 opcoes.Add(1, new MenuRegistrarArtista());
@@ -43,9 +45,9 @@ void ExibirOpcoesDoMenu()
     if (opcoes.ContainsKey(opcaoEscolhidaNumerica))
     {
         Menu menuASerExibido = opcoes[opcaoEscolhidaNumerica];
-        menuASerExibido.Executar(artistaDAL);
+        //menuASerExibido.Executar(artistaDAL);
         if (opcaoEscolhidaNumerica > 0) ExibirOpcoesDoMenu();
-    } 
+    }
     else
     {
         Console.WriteLine("Opção inválida");
@@ -53,3 +55,4 @@ void ExibirOpcoesDoMenu()
 }
 
 ExibirOpcoesDoMenu();
+

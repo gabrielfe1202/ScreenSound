@@ -4,6 +4,7 @@ using ScreenSound.API.Requests;
 using ScreenSound.API.Response;
 using ScreenSound.Banco;
 using ScreenSound.Modelos;
+using ScreenSound.Shared.Modelos.Functions;
 
 namespace ScreenSound.API.Endpoints;
 
@@ -12,8 +13,9 @@ public static class ArtistasExtensions
     public static void AddEndPointsArtistas(this WebApplication app)
     {
 
-        #region Endpoint Artistas
-        app.MapGet("/Artistas", ([FromServices] DAL<Artista> dal) =>
+        var groupBuilder = app.MapGroup("Artistas").RequireAuthorization().WithTags("Artistas");
+
+        groupBuilder.MapGet("", ([FromServices] DAL<Artista> dal) =>
         {
             var listaDeArtistas = dal.Listar();
             if (listaDeArtistas is null)
@@ -24,7 +26,7 @@ public static class ArtistasExtensions
             return Results.Ok(listaDeArtistaResponse);
         });
 
-        app.MapGet("/Artistas/{nome}", ([FromServices] DAL<Artista> dal, string nome) =>
+        groupBuilder.MapGet("{nome}", ([FromServices] DAL<Artista> dal, string nome) =>
         {
             var artista = dal.RecuperarPor(a => a.Nome.ToUpper().Equals(nome.ToUpper()));
             if (artista is null)
@@ -35,14 +37,14 @@ public static class ArtistasExtensions
 
         });
 
-        app.MapPost("/Artistas", async ( [FromServices] IHostEnvironment env, [FromServices] DAL<Artista> dal, [FromBody] ArtistaRequest artistaRequest) =>
+        groupBuilder.MapPost("", async ([FromServices] IHostEnvironment env, [FromServices] DAL<Artista> dal, [FromBody] ArtistaRequest artistaRequest) =>
         {
-            var nome = artistaRequest.nome.Trim();
+            var nome = TextFunctions.RemoveSpacesSpecialCharactersAndAccents(artistaRequest.nome.Trim());
             var imagemArtista = DateTime.Now.ToString("ddMMyyyyhhmmss") + nome + ".jpg";
             var path = Path.Combine(env.ContentRootPath, "wwwroot", "FotosPerfil", imagemArtista);
 
             using MemoryStream ms = new MemoryStream(Convert.FromBase64String(artistaRequest.fotoPerfil!));
-            using FileStream fs = new(path, FileMode.Create);  
+            using FileStream fs = new(path, FileMode.Create);
             await ms.CopyToAsync(fs);
 
             var artista = new Artista(artistaRequest.nome, artistaRequest.bio)
@@ -54,7 +56,8 @@ public static class ArtistasExtensions
             return Results.Ok();
         });
 
-        app.MapDelete("/Artistas/{id}", ([FromServices] DAL<Artista> dal, int id) => {
+        groupBuilder.MapDelete("{id}", ([FromServices] DAL<Artista> dal, int id) =>
+        {
             var artista = dal.RecuperarPor(a => a.Id == id);
             if (artista is null)
             {
@@ -65,37 +68,40 @@ public static class ArtistasExtensions
 
         });
 
-        app.MapPut("/Artistas", async ([FromServices] IHostEnvironment env, [FromServices] DAL<Artista> dal, [FromBody] ArtistaRequestEdit artistaRequestEdit) => {
-            var artistaAAtualizar = dal.RecuperarPor(a => a.Id == artistaRequestEdit.Id);
-            if (artistaAAtualizar is null)
+        groupBuilder.MapPut("", async ([FromServices] IHostEnvironment env, [FromServices] DAL<Artista> dal, [FromBody] ArtistaRequestEdit artistaRequestEdit) =>
+        {
+            var artistaAtualizar = dal.RecuperarPor(a => a.Id == artistaRequestEdit.Id);
+
+            if (artistaAtualizar is null)
             {
                 return Results.NotFound();
             }
 
-            if (!string.IsNullOrEmpty(artistaAAtualizar.FotoPerfil))
+            if (!string.IsNullOrEmpty(artistaRequestEdit.fotoPerfil) && artistaRequestEdit.fotoPerfil != artistaAtualizar.FotoPerfil)
             {
-                var pathImagemAntiga = Path.Combine(env.ContentRootPath, "wwwroot", "FotosPerfil", artistaAAtualizar.FotoPerfil.Split("/")[0]);
-                if (File.Exists(pathImagemAntiga))
+                if (!string.IsNullOrEmpty(artistaAtualizar.FotoPerfil))
                 {
-                    File.Delete(pathImagemAntiga);
+                    var pathImagemAntiga = Path.Combine(env.ContentRootPath, "wwwroot", "FotosPerfil", artistaAtualizar.FotoPerfil.Split("/")[2]);
+                    if (File.Exists(pathImagemAntiga))
+                    {
+                        File.Delete(pathImagemAntiga);
+                    }
                 }
+                string nome = TextFunctions.RemoveSpacesSpecialCharactersAndAccents(artistaRequestEdit.nome.Trim());
+                string imagemArtista = DateTime.Now.ToString("ddMMyyyyhhmmss") + nome + ".jpg";
+                string path = Path.Combine(env.ContentRootPath, "wwwroot", "FotosPerfil", imagemArtista);
+
+                using MemoryStream ms = new MemoryStream(Convert.FromBase64String(artistaRequestEdit.fotoPerfil!));
+                using FileStream fs = new(path, FileMode.Create);
+                await ms.CopyToAsync(fs);
+                artistaAtualizar.FotoPerfil = $"/FotosPerfil/{imagemArtista}";
             }
 
-            var nome = artistaRequestEdit.nome.Trim();
-            var imagemArtista = DateTime.Now.ToString("ddMMyyyyhhmmss") + nome + ".jpg";
-            var path = Path.Combine(env.ContentRootPath, "wwwroot", "FotosPerfil", imagemArtista);
-
-            using MemoryStream ms = new MemoryStream(Convert.FromBase64String(artistaRequestEdit.fotoPerfil!));
-            using FileStream fs = new(path, FileMode.Create);
-            await ms.CopyToAsync(fs);
-
-            artistaAAtualizar.Nome = artistaRequestEdit.nome;
-            artistaAAtualizar.Bio = artistaRequestEdit.bio;
-            artistaAAtualizar.FotoPerfil = $"/FotosPerfil/{imagemArtista}";
-            dal.Atualizar(artistaAAtualizar);
+            artistaAtualizar.Nome = artistaRequestEdit.nome;
+            artistaAtualizar.Bio = artistaRequestEdit.bio;
+            dal.Atualizar(artistaAtualizar);
             return Results.Ok();
         });
-        #endregion
     }
 
     private static ICollection<ArtistaResponse> EntityListToResponseList(IEnumerable<Artista> listaDeArtistas)
@@ -108,5 +114,5 @@ public static class ArtistasExtensions
         return new ArtistaResponse(artista.Id, artista.Nome, artista.Bio, artista.FotoPerfil);
     }
 
-  
+
 }

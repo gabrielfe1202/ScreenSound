@@ -1,12 +1,20 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider />
-<MudDialogProvider />
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
+<MudDialogProvider FullWidth="true"
+                   MaxWidth="MaxWidth.ExtraSmall"
+                   CloseButton="true"
+                   DisableBackdropClick="true"
+                   NoHeader="false"
+                   Position="DialogPosition.Center"
+                   CloseOnEscapeKey="true" />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Color="Color.Surface" Fixed="true" Elevation="2">
+    <MudAppBar Color="Color.Dark" Fixed="true" Elevation="2">
         <MudImage Src="images/screensound-logo.png"></MudImage>
+        <MudSpacer />
+        <MudSwitch @bind-Checked="@_isDarkMode" Color="Color.Primary" Class="ma-4" T="bool" Label="Toggle Light/Dark Mode" />
     </MudAppBar>
     <MudDrawer Open="true" ClipMode="DrawerClipMode.Always" Elevation="2">
         <NavMenu></NavMenu>
@@ -15,3 +23,8 @@
         @Body
     </MudMainContent>
 </MudLayout>
+
+@code {
+    private MudTheme _theme = new();
+    private bool _isDarkMode = true;
+}
