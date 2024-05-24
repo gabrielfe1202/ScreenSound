@@ -1,6 +1,7 @@
 ﻿@page "/"
 @inject ArtistaAPI artistaApi
 @inject AuthAPI authAPI
+@attribute [AllowAnonymous]
 
 <PageTitle>Home</PageTitle>
 
@@ -9,6 +10,10 @@
         <MudContainer MaxWidth="MaxWidth.Medium">
             <MudPaper Class="px-8 pt-2 pb-4 mx-16 my-8" Justify="Justify.Center">
                 <p>Voce esta logado como @context.User.Identity.Name </p>
+                <MudButton Variant="Variant.Filled" Color="Color.Error"
+                           Class="my-6" @onclick="Logout">
+                    Logout
+                </MudButton>
             </MudPaper>
         </MudContainer>
     </Authorized>
@@ -44,6 +49,11 @@
     public async Task FazerLogin()
     {
         await authAPI.LoginAsync(email, senha);
+    }
+
+    public async Task Logout()
+    {
+       await authAPI.LogoutAsync();
     }
 
 }

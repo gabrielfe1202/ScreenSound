@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -61,6 +62,12 @@ app.AddEndPointsMusicas();
 app.AddEndPointGeneros();
 
 app.MapGroup("auth").MapIdentityApi<PessoaComAcesso>().WithTags("Authentication");
+
+app.MapPost("auth/Logout", async ([FromServices] SignInManager<PessoaComAcesso> singInManager ) =>
+{
+    await singInManager.SignOutAsync();
+    return Results.Ok();
+}).RequireAuthorization().WithTags("Autorização");
 
 app.UseSwagger();
 app.UseSwaggerUI();

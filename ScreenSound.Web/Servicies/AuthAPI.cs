@@ -13,6 +13,7 @@ namespace ScreenSound.Web.Servicies
     {
         private readonly HttpClient _httpClient;
         private readonly CookieContainer _cookieContainer;
+        private bool autenticado = false;
 
         public AuthAPI(string baseAddress)
         {
@@ -35,6 +36,7 @@ namespace ScreenSound.Web.Servicies
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
+            autenticado = false;
             var pessoa = new ClaimsPrincipal();
             var response = await _httpClient.GetAsync("auth/manage/info");
             if (response.IsSuccessStatusCode)
@@ -46,6 +48,7 @@ namespace ScreenSound.Web.Servicies
                 ];
                 var identity = new ClaimsIdentity(dados,"Cookies");
                 pessoa = new ClaimsPrincipal(identity);
+                autenticado = true;
             }
             return new AuthenticationState(pessoa);
         }
@@ -66,6 +69,18 @@ namespace ScreenSound.Web.Servicies
             {
                 return new AuthResponse { Success = false, Error = ["Login ou senha invalidos"] };
             }
+        }
+
+        public async Task LogoutAsync()
+        {
+            await _httpClient.PostAsync("auth/Logout",null);
+            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+        }
+
+        public async Task<bool> VerifyAuthentication()
+        {
+            await GetAuthenticationStateAsync();
+            return autenticado;
         }
     }
 }
