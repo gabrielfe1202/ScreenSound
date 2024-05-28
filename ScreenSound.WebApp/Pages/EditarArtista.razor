@@ -1,0 +1,149 @@
+﻿@page "/editarartista/{NomeArtista}"
+@inject ArtistaAPI artistasAPI
+@inject NavigationManager navigationManager
+@using ScreenSound.Web.Pages.Dialogs
+@using ScreenSound.WebApp.Pages.Dialogs
+@inject IDialogService DialogService
+
+
+<MudPaper Class="px-8 pt-2 pb-4 mx-12 my-8" Justify="Justify.Center">
+
+    <MudText Class="mt-8" Typo="Typo.h4">Edição de Artista</MudText>
+
+    <MudForm>
+
+        @if (Artista is not null)
+        {
+
+            <MudTextField Class="mt-4" T="string" Placeholder="Nome do Artista"
+                          Variant="Variant.Outlined"
+                          @bind-Value="nome"
+                          Required="true"
+                          RequiredError="Campo obrigatório." />
+
+            <MudTextField Class="mt-4" T="string" Placeholder="Biografia do artista"
+                          Variant="Variant.Outlined"
+                          @bind-Value="biografia"
+                          Lines="4"
+                          Required="true"
+                          RequiredError="Campo obrigatório." />
+
+            <MudImage Class="mt-4" src="@fileImage" Height="300" />
+            <MudFileUpload T="IBrowserFile" Accept=".jpeg" FilesChanged="UploadFile">
+                <ButtonTemplate>
+                    <MudButton HtmlTag="label"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.PhotoCamera"
+                               for="@context">
+                        Foto de Perfil
+                    </MudButton>
+                </ButtonTemplate>
+            </MudFileUpload>
+
+            <div class="d-flex align-center justify-space-between mt-4">
+                <MudButton Variant="Variant.Filled"
+                           @onclick="Arterar"
+                           Color="Color.Primary"
+                           Class="ml-auto">
+                    Alterar
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           @onclick="Deletar"
+                           Color="Color.Secondary"
+                           Class="ml-auto">
+                    Deletar
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Info"
+                           Class="ml-3"
+                           @onclick="VoltarParaListagem">
+                    Voltar
+                </MudButton>                
+            </div>
+
+        }
+        else
+        {
+
+            <MudSkeleton Animation="Animation.False" Height="55px" />
+            <MudSkeleton Animation="Animation.Wave" Height="55px" />
+            <MudSkeleton Animation="Animation.False" Height="55px" />
+            <MudSkeleton Animation="Animation.Wave" Height="55px" />
+
+        }
+
+    </MudForm>
+</MudPaper>
+
+
+
+
+@code {
+    private string? nome;
+    private string? biografia;
+    private string? fotoPerfil;
+    private string? fileImage;
+    [Parameter]
+    public string? NomeArtista { get; set; }
+
+    public ArtistaResponse? Artista { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Artista = await artistasAPI.GetArtistaPorNomeAsync(NomeArtista!);
+        nome = Artista!.Nome;
+        biografia = Artista!.Bio;
+        fileImage = string.Concat("https://localhost:7089/", Artista!.FotoPerfil);
+    }
+
+    private async Task Deletar()
+    {
+        
+        var parameters = new DialogParameters<DialogUsageExample_Dialog>();
+        parameters.Add(x => x.ContentText, "Do you really want to delete these records? This process cannot be undone.");
+        parameters.Add(x => x.ButtonText, "Delete");
+        parameters.Add(x => x.Color, Color.Error);
+
+        var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        var dialog = DialogService.Show<DialogUsageExample_Dialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Cancelled)
+        {
+            bool dialogResult = (bool)result.Data;
+            if (dialogResult)
+            {
+                await artistasAPI.DeleteArtistaAsync(Artista!.Id);
+                navigationManager.NavigateTo("/Artistas");
+            }
+        }
+    }
+    public async Task Arterar()
+    {
+        var requestEdit = new ArtistaRequestEdit(Artista!.Id, nome!, biografia!, fotoPerfil);
+        await artistasAPI.UpdateArtistaAsync(requestEdit);
+        navigationManager.NavigateTo("/Artistas");
+    }
+
+    private void VoltarParaListagem()
+    {
+        navigationManager.NavigateTo("/Artistas");
+    }
+
+    private async Task UploadFile(IBrowserFile file)
+    {
+        long maxFileSize = 1024 * 1024 * 15;
+        var format = "image/jpeg";
+        var resizedImage = await file.RequestImageFileAsync(format, 1000, 1000);
+
+        using var fileStream = resizedImage.OpenReadStream();
+        using var memoryStream = new MemoryStream();
+        await fileStream.CopyToAsync(memoryStream);
+
+        var imageUpload = Convert.ToBase64String(memoryStream.ToArray());
+        fileImage = $"data:{format};base64,{imageUpload}";
+        fotoPerfil = imageUpload;
+    }
+}

@@ -3,7 +3,7 @@
 
 @code {
     protected override void OnInitialized()
-    {        
-        Navigation.NavigateTo($"/?ReturnUrl={Uri.EscapeDataString(Navigation.Uri)}");
+    {
+        Navigation.NavigateTo($"/Login?ReturnUrl={Uri.EscapeDataString(Navigation.Uri)}");
     }
 }

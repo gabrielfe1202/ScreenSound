@@ -2,7 +2,6 @@
 @inject ArtistaAPI artistaApi
 @inject AuthAPI authAPI
 @inject NavigationManager Navigation
-@attribute [AllowAnonymous]
 
 <PageTitle>Home</PageTitle>
 
@@ -55,15 +54,16 @@
         var response = await authAPI.LoginAsync(email, senha);
         if (response.Success)
         {
-            if(ReturnUrl is not null){
-               Navigation.NavigateTo(ReturnUrl); 
+            if (ReturnUrl is not null)
+            {
+                Navigation.NavigateTo(ReturnUrl);
             }
         }
     }
 
     public async Task Logout()
     {
-       await authAPI.LogoutAsync();
+        await authAPI.LogoutAsync();
     }
 
 }

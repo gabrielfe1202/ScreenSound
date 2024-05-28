@@ -35,7 +35,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
             builder.Configuration["BackendUrl"] ?? "https://localhost:7089",
-            builder.Configuration["FrontendUrl"] ?? "https://localhost:7065")
+            builder.Configuration["FrontendUrl"] ?? "https://localhost:7078")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials(); // Permite credenciais
